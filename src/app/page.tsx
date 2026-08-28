@@ -144,6 +144,16 @@ export default function Lobby() {
               </>
             )}
           </button>
+          
+          <div className="mt-8 pt-6 border-t border-slate-800 text-center">
+            <button 
+              type="button"
+              onClick={() => router.push('/briefing')}
+              className="text-cyan-500 hover:text-cyan-400 text-sm font-mono tracking-widest uppercase transition-colors hover:underline underline-offset-4"
+            >
+              [ View Mission Briefing / Rules ]
+            </button>
+          </div>
         </form>
       </motion.div>
     </main>

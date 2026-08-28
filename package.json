@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
+    "dotenv": "^17.4.2",
     "framer-motion": "^13.1.1",
     "groq-sdk": "^1.6.0",
     "lucide-react": "^1.34.0",
