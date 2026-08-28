@@ -3,22 +3,56 @@
 import { motion } from 'framer-motion';
 import { Terminal, ShieldAlert, Clock, Database } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function Lobby() {
   const router = useRouter();
   const [teamCode, setTeamCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleJoin = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Clear any existing team context when returning to the lobby
+    localStorage.removeItem('hackfusion_team_code');
+  }, []);
+
+  const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamCode.trim()) return;
-    
+
     setIsJoining(true);
-    // TODO: Validate team code against Supabase
-    setTimeout(() => {
+    setError(null);
+
+    try {
+      const code = teamCode.toUpperCase();
+      
+      // Secret Admin Bypass
+      if (code === 'ADMIN-MODE' || code === 'SUDO') {
+        router.push('/leaderboard');
+        return;
+      }
+      
+      // Upsert the team (if they exist, fetch them, otherwise create them with 15 tokens)
+      const { data, error: sbError } = await supabase
+        .from('teams')
+        .upsert({ team_code: code }, { onConflict: 'team_code' })
+        .select()
+        .single();
+
+      if (sbError) throw sbError;
+
+      // Save to local storage so other pages know who is playing
+      localStorage.setItem('hackfusion_team_code', code);
+
+      // Route to interrogation room
       router.push('/interrogation');
-    }, 1500);
+      
+    } catch (err: any) {
+      console.error(err);
+      setError('Connection failed. Database offline.');
+      setIsJoining(false);
+    }
   };
 
   return (
@@ -80,11 +114,16 @@ export default function Lobby() {
               type="text"
               value={teamCode}
               onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
-              placeholder="e.g. ALPHA-99"
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono text-center text-xl tracking-widest placeholder:text-slate-700"
+              placeholder="ENTER ASSIGNED CALLSIGN..."
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg py-4 px-6 text-center text-cyan-400 font-mono tracking-widest placeholder-slate-700 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 uppercase"
               required
               disabled={isJoining}
             />
+            {error && (
+              <div className="text-red-400 text-xs font-mono text-center mt-2">
+                [!] {error}
+              </div>
+            )}
           </div>
           <button
             type="submit"
