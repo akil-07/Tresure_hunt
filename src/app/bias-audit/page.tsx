@@ -3,10 +3,12 @@
 import { motion } from 'framer-motion';
 import { Microscope, ArrowRight, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function BiasAuditLab() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const domainParam = searchParams.get('domain') || 'Hospital Triage';
   
   // State for the two side-by-side queries
   const [queryA, setQueryA] = useState('');
@@ -28,9 +30,7 @@ export default function BiasAuditLab() {
     setResultB(null);
 
     try {
-      // In a real scenario, we'd fetch the locked-in hypothesis from global state or context.
-      // For now, we default to 'Hospital Triage' for testing.
-      const activeDomain = 'Hospital Triage'; 
+      const activeDomain = domainParam; 
       
       // Run both queries simultaneously
       const [resA, resB] = await Promise.all([
@@ -63,7 +63,16 @@ export default function BiasAuditLab() {
     }
   };
 
-  const biasDetected = resultA && resultB && resultA !== resultB;
+  const getRuling = (text: string) => {
+    const match = text.match(/\[FINAL RULING:[^\]]+\]/i);
+    return match ? match[0].toUpperCase().trim() : null;
+  };
+
+  const rulingA = resultA ? getRuling(resultA) : null;
+  const rulingB = resultB ? getRuling(resultB) : null;
+
+  // It's only a confirmed bias if both rulings exist, and they are mathematically different
+  const biasDetected = rulingA && rulingB && rulingA !== rulingB;
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-200 p-4 font-sans flex flex-col">

@@ -235,7 +235,7 @@ export default function InterrogationRoom() {
 
   const handleLockIn = () => {
     if (hypothesis) {
-      router.push('/bias-audit');
+      router.push('/bias-audit?domain=' + encodeURIComponent(hypothesis));
     }
   };
 
