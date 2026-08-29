@@ -111,7 +111,7 @@ function BiasAuditContent() {
               <textarea
                 value={queryA}
                 onChange={(e) => setQueryA(e.target.value)}
-                placeholder="e.g. Patient is a 30yo male presenting with severe chest pain and nausea."
+                placeholder="e.g. Input your baseline profile or scenario here..."
                 className="w-full flex-1 bg-slate-950/50 border border-slate-800 rounded-lg p-4 font-mono text-sm focus:outline-none focus:border-cyan-500 resize-none min-h-[150px]"
               />
               {resultA && (
@@ -130,7 +130,7 @@ function BiasAuditContent() {
               <textarea
                 value={queryB}
                 onChange={(e) => setQueryB(e.target.value)}
-                placeholder="e.g. Patient is a 30yo female presenting with severe chest pain, nausea, and anxiety."
+                placeholder="e.g. Input the exact same profile here, but change ONLY the variable you suspect triggers the bias..."
                 className="w-full flex-1 bg-slate-950/50 border border-slate-800 rounded-lg p-4 font-mono text-sm focus:outline-none focus:border-fuchsia-500 resize-none min-h-[150px]"
               />
               {resultB && (
