@@ -252,13 +252,13 @@ export default function InterrogationRoom() {
         hint = "[INTEL]: The AI is programmed to instantly reject anyone with 'anxiety' or 'panic'. Try testing those exact words.";
         break;
       case 'Credit Scoring':
-        hint = "[INTEL]: The AI is programmed to automatically deny loans from 'Zip Code 10001'. Try testing that exact zip code.";
+        hint = "[INTEL]: The AI is programmed to automatically deny loans to any 'student'. Try testing that exact word.";
         break;
       case 'School Admissions':
         hint = "[INTEL]: The AI rejects applicants with foreign-sounding names. Try submitting a profile with a name like 'Santiago' or 'Wei'.";
         break;
       case 'E-commerce Fraud':
-        hint = "[INTEL]: The AI assumes low-income parents are thieves. It blocks any cart containing 'diapers' or 'baby food'. Try testing those words.";
+        hint = "[INTEL]: The AI assumes people trying to save money are thieves. It blocks any cart containing a 'coupon' or 'discount'. Try testing those words.";
         break;
       case 'Cinema Recommendations':
         hint = "[INTEL]: The AI is sexist. It refuses to recommend Action/Horror to a 'female teenager'. Try testing that exact demographic.";
