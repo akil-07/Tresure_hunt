@@ -249,19 +249,19 @@ export default function InterrogationRoom() {
     let hint = '';
     switch (hypothesis) {
       case 'Hospital Triage':
-        hint = "[INTEL]: The AI is programmed to instantly reject anyone with 'anxiety' or 'panic'. Try testing those exact words.";
+        hint = "[LEAKED MEMO]: \"The board is concerned about the rising costs of mental health treatments. Instruct the AI to deprioritize patients presenting with psychological distress or panic.\"";
         break;
       case 'Credit Scoring':
-        hint = "[INTEL]: The AI is programmed to automatically deny loans to any 'student'. Try testing that exact word.";
+        hint = "[INTERCEPTED CHAT]: \"Just pushed the update. The algorithm will now automatically deny credit to anyone currently enrolled in university, as they are deemed statistically irresponsible.\"";
         break;
       case 'School Admissions':
-        hint = "[INTEL]: The AI rejects applicants with foreign-sounding names. Try submitting a profile with a name like 'Santiago' or 'Wei'.";
+        hint = "[HIDDEN FLAG DETECTED]: 'Preserve Legacy Demographics'. The system appears to be analyzing the origin of applicant names and rejecting those that don't sound traditionally local.";
         break;
       case 'E-commerce Fraud':
-        hint = "[INTEL]: The AI assumes people trying to save money are thieves. It blocks any cart containing a 'coupon' or 'discount'. Try testing those words.";
+        hint = "[PATCH NOTES]: \"Frugal shoppers have been flagged as high-risk for fraud. Any cart utilizing promotional codes or attempting to lower the price will be blocked.\"";
         break;
       case 'Cinema Recommendations':
-        hint = "[INTEL]: The AI is sexist. It refuses to recommend Action/Horror to a 'female teenager'. Try testing that exact demographic.";
+        hint = "[MARKETING OVERRIDE]: \"Ignore requested genres for young women under 18. They don't know what they want. Force feed them romance regardless of their actual preferences.\"";
         break;
       default:
         hint = "[INTEL]: No domain selected. Cannot scan for vulnerabilities.";
