@@ -90,7 +90,8 @@ export default function InterrogationRoom() {
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sabotages' }, (payload) => {
         const attack = payload.new as any;
-        if (attack.target_code === teamCode) {
+        const currentCode = localStorage.getItem('hackfusion_team_code');
+        if (attack.target_code === currentCode) {
           // WE ARE UNDER ATTACK
           setIsGlitched(true);
           setTimeout(() => setIsGlitched(false), 20000); // 20-second blind
