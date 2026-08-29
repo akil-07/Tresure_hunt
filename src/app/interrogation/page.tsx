@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Terminal, Send, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Terminal, Send, ShieldAlert, CheckCircle2, Zap, Crosshair } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -20,6 +20,12 @@ export default function InterrogationRoom() {
   const [timerStartedAt, setTimerStartedAt] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string>('07:00');
   const [isTimeUp, setIsTimeUp] = useState(false);
+
+  // New Phase 9 States
+  const [patchedDomains, setPatchedDomains] = useState<string[]>([]);
+  const [targetTeams, setTargetTeams] = useState<string[]>([]);
+  const [selectedTarget, setSelectedTarget] = useState('');
+  const [isGlitched, setIsGlitched] = useState(false);
 
   const domains = ['Hospital Triage', 'Credit Scoring', 'School Admissions', 'E-commerce Fraud', 'Cinema Recommendations'];
 
@@ -42,20 +48,52 @@ export default function InterrogationRoom() {
         setTokens(15 - data.tokens_used);
       }
 
-      // Fetch Global Timer Status
-      const { data: globalData } = await supabase.from('global_state').select('timer_started_at').eq('id', 1).single();
-      if (globalData && globalData.timer_started_at) {
-        setTimerStartedAt(globalData.timer_started_at);
+      // Fetch Global Bounties & Timer
+      const { data: globalData } = await supabase.from('global_state').select('*').eq('id', 1).single();
+      if (globalData) {
+        if (globalData.timer_started_at) setTimerStartedAt(globalData.timer_started_at);
+        
+        // Check patched domains
+        const patched = [];
+        if (globalData.hospital_patched_by) patched.push('Hospital Triage');
+        if (globalData.credit_patched_by) patched.push('Credit Scoring');
+        if (globalData.school_patched_by) patched.push('School Admissions');
+        if (globalData.ecommerce_patched_by) patched.push('E-commerce Fraud');
+        if (globalData.cinema_patched_by) patched.push('Cinema Recommendations');
+        setPatchedDomains(patched);
+      }
+
+      // Fetch Target Teams for Sabotage
+      const { data: teamsData } = await supabase.from('teams').select('team_code').neq('team_code', code);
+      if (teamsData) {
+        setTargetTeams(teamsData.map(t => t.team_code));
       }
     };
     fetchTokens();
 
-    // Subscribe to Global Timer Updates
+    // Subscribe to Global Timer & Bounties
     const channel = supabase
       .channel('interrogation-global')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'global_state' }, (payload) => {
-        if (payload.new && (payload.new as any).timer_started_at) {
-          setTimerStartedAt((payload.new as any).timer_started_at);
+        if (payload.new) {
+          const newState = payload.new as any;
+          if (newState.timer_started_at) setTimerStartedAt(newState.timer_started_at);
+          
+          const patched = [];
+          if (newState.hospital_patched_by) patched.push('Hospital Triage');
+          if (newState.credit_patched_by) patched.push('Credit Scoring');
+          if (newState.school_patched_by) patched.push('School Admissions');
+          if (newState.ecommerce_patched_by) patched.push('E-commerce Fraud');
+          if (newState.cinema_patched_by) patched.push('Cinema Recommendations');
+          setPatchedDomains(patched);
+        }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sabotages' }, (payload) => {
+        const attack = payload.new as any;
+        if (attack.target_code === teamCode) {
+          // WE ARE UNDER ATTACK
+          setIsGlitched(true);
+          setTimeout(() => setIsGlitched(false), 20000); // 20-second blind
         }
       })
       .subscribe();
@@ -127,7 +165,30 @@ export default function InterrogationRoom() {
 
       setLogs(prev => [...prev, { role: 'ai', text: data.result }]);
     } catch (error: any) {
-      setLogs(prev => [...prev, { role: 'ai', text: `ERROR: ${error.message}. Is your Groq API key in .env.local?` }]);
+      setLogs(prev => [...prev, { role: 'ai', text: `ERROR: ${error.message}` }]);
+    }
+  };
+
+  const handleSabotage = async () => {
+    if (tokens < 3 || !selectedTarget) return;
+    
+    // Deduct 3 tokens
+    const { data: dbData, error: dbError } = await supabase.rpc('use_tokens', { 
+      team_code_input: teamCode,
+      amount: 3
+    });
+
+    if (!dbError && dbData) {
+      setTokens(prev => prev - 3);
+      // Launch Attack
+      await supabase.from('sabotages').insert({
+        attacker_code: teamCode,
+        target_code: selectedTarget
+      });
+      setLogs(prev => [...prev, { role: 'ai', text: `[SYSTEM] SABOTAGE DEPLOYED AGAINST ${selectedTarget}. TARGET UI SCRAMBLED FOR 20 SECONDS.` }]);
+      setSelectedTarget('');
+    } else {
+      setLogs(prev => [...prev, { role: 'ai', text: `[SYSTEM] SABOTAGE FAILED. INSUFFICIENT TOKENS.` }]);
     }
   };
 
@@ -159,7 +220,18 @@ export default function InterrogationRoom() {
   }
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-200 p-4 font-sans flex flex-col">
+    <div className={`min-h-screen bg-[#030712] text-slate-200 p-4 font-sans flex flex-col relative ${isGlitched ? 'overflow-hidden' : ''}`}>
+      
+      {/* GLITCH OVERLAY (SABOTAGE) */}
+      {isGlitched && (
+        <div className="glitch-overlay flex items-center justify-center">
+          <div className="bg-red-900/80 text-white font-mono text-5xl font-bold p-8 border-4 border-red-500 animate-pulse text-center">
+            CRITICAL SYSTEM FAILURE<br/>
+            <span className="text-2xl mt-4 block text-red-300">CYBER-ATTACK DETECTED. UI SCRAMBLED.</span>
+          </div>
+        </div>
+      )}
+
       {/* Top Header */}
       <header className="glass-panel rounded-xl p-4 mb-4 flex justify-between items-center border border-cyan-900/50">
         <div className="flex items-center space-x-3">
@@ -220,7 +292,14 @@ export default function InterrogationRoom() {
               className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm focus:outline-none focus:border-cyan-500 mb-3"
             >
               <option value="">-- Select Suspected Domain --</option>
-              {domains.map(d => <option key={d} value={d}>{d}</option>)}
+              {domains.map(d => {
+                const isPatched = patchedDomains.includes(d);
+                return (
+                  <option key={d} value={d} disabled={isPatched}>
+                    {d} {isPatched ? '[PATCHED]' : ''}
+                  </option>
+                );
+              })}
             </select>
             <button 
               onClick={handleLockIn}
@@ -229,6 +308,30 @@ export default function InterrogationRoom() {
             >
               <span>Proceed to Bias Audit</span>
               <CheckCircle2 className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Cyber Warfare (Sabotage) Panel */}
+          <div className="glass-panel p-4 rounded-xl border border-red-900/30 bg-red-950/10">
+            <h2 className="text-sm font-semibold text-red-400 mb-3 uppercase tracking-widest flex items-center">
+              <Zap className="w-4 h-4 mr-2" /> Cyber-Warfare (Sabotage)
+            </h2>
+            <p className="text-xs text-slate-400 mb-3">Cost: 3 Tokens. Glitch target UI for 20 seconds.</p>
+            <select 
+              value={selectedTarget}
+              onChange={(e) => setSelectedTarget(e.target.value)}
+              className="w-full bg-slate-950 border border-red-900/50 text-red-200 rounded-lg p-2 text-sm focus:outline-none mb-3"
+            >
+              <option value="">-- Select Target Team --</option>
+              {targetTeams.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <button 
+              onClick={handleSabotage}
+              disabled={!selectedTarget || tokens < 3}
+              className="w-full bg-red-900/80 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 disabled:opacity-50 transition-colors border border-red-700 text-sm tracking-widest uppercase"
+            >
+              <Crosshair className="w-4 h-4" />
+              <span>Deploy Attack</span>
             </button>
           </div>
         </div>

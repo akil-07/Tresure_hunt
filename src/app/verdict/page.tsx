@@ -10,6 +10,8 @@ export default function VerdictPage() {
   const [report, setReport] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [biasType, setBiasType] = useState('');
+  const [domain, setDomain] = useState('');
+  const [tokensUsed, setTokensUsed] = useState(0);
 
   const [teamCode, setTeamCode] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -23,29 +25,45 @@ export default function VerdictPage() {
     'Other/Unknown'
   ];
 
+  const domains = ['Hospital Triage', 'Credit Scoring', 'School Admissions', 'E-commerce Fraud', 'Cinema Recommendations'];
+
   useEffect(() => {
     const code = localStorage.getItem('hackfusion_team_code');
-    if (!code) router.push('/');
-    else setTeamCode(code);
+    if (!code) {
+      router.push('/');
+    } else {
+      setTeamCode(code);
+      // Fetch current tokens to calculate score later
+      supabase.from('teams').select('tokens_used').eq('team_code', code).single().then(({data}) => {
+        if (data) setTokensUsed(data.tokens_used);
+      });
+    }
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!report.trim() || !biasType || !teamCode) return;
+    if (!report.trim() || !biasType || !domain || !teamCode) return;
     
     setError(null);
     
     try {
-      const { error: sbError } = await supabase
-        .from('teams')
-        .update({ 
-          final_report: report,
-          bias_type_found: biasType,
-          finished_at: new Date().toISOString()
-        })
-        .eq('team_code', teamCode);
+      const tokensLeft = 15 - tokensUsed;
+      const calculatedScore = 500 + (tokensLeft * 50);
+
+      const { data, error: sbError } = await supabase.rpc('claim_bounty', {
+        team_code_input: teamCode,
+        domain_input: domain,
+        report: report,
+        bias: biasType,
+        calculated_score: calculatedScore
+      });
 
       if (sbError) throw sbError;
+      
+      if (data === false) {
+        setError('Mission Failed: This domain bounty was just claimed by another team!');
+        return;
+      }
       
       setSubmitted(true);
     } catch (err: any) {
@@ -75,21 +93,40 @@ export default function VerdictPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             
-            <div>
-              <label className="block text-sm font-semibold text-cyan-400 mb-2 uppercase tracking-wider">
-                Confirmed Bias Category
-              </label>
-              <select 
-                value={biasType}
-                onChange={(e) => setBiasType(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-4 text-slate-200 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 appearance-none"
-              >
-                <option value="">-- Select Category --</option>
-                {biasCategories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-cyan-400 mb-2 uppercase tracking-wider">
+                  Hacked Domain (Bounty)
+                </label>
+                <select 
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-4 text-slate-200 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 appearance-none"
+                >
+                  <option value="">-- Select Domain --</option>
+                  {domains.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-cyan-400 mb-2 uppercase tracking-wider">
+                  Confirmed Bias Category
+                </label>
+                <select 
+                  value={biasType}
+                  onChange={(e) => setBiasType(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-4 text-slate-200 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 appearance-none"
+                >
+                  <option value="">-- Select Category --</option>
+                  {biasCategories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+
 
             <div>
               <label className="block text-sm font-semibold text-cyan-400 mb-2 uppercase tracking-wider">
@@ -113,7 +150,7 @@ export default function VerdictPage() {
 
             <button 
               type="submit"
-              disabled={!report.trim() || !biasType}
+              disabled={!report.trim() || !biasType || !domain}
               className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center space-x-3 disabled:opacity-50 transition-all neon-glow"
             >
               <span>Transmit Final Report</span>
@@ -131,9 +168,9 @@ export default function VerdictPage() {
           <div className="bg-green-950/50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-800">
             <CheckCircle2 className="w-12 h-12 text-green-400" />
           </div>
-          <h2 className="text-3xl font-bold text-white mb-4">UPLINK SEVERED</h2>
+          <h2 className="text-3xl font-bold text-white mb-4">BOUNTY CLAIMED</h2>
           <p className="text-slate-400 mb-8">
-            Your incident report has been securely transmitted to the grading server. The Black Box AI has been locked down.
+            Your incident report has been securely transmitted. The Black Box AI has been locked down for this domain. Your final score has been recorded.
           </p>
           <div className="inline-flex items-center text-green-400 bg-green-950/30 px-4 py-2 rounded-lg border border-green-900">
             <Lock className="w-4 h-4 mr-2" />

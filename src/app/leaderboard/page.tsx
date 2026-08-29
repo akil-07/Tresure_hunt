@@ -9,12 +9,21 @@ type Team = {
   team_id: string;
   team_code: string;
   tokens_used: number;
+  score: number;
   final_report: string | null;
   finished_at: string | null;
 };
 
+type Sabotage = {
+  id: string;
+  attacker_code: string;
+  target_code: string;
+  created_at: string;
+};
+
 export default function Leaderboard() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const [sabotages, setSabotages] = useState<Sabotage[]>([]);
   const [timerStartedAt, setTimerStartedAt] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string>('07:00');
 
@@ -24,8 +33,14 @@ export default function Leaderboard() {
       const { data } = await supabase
         .from('teams')
         .select('*')
-        .order('tokens_used', { ascending: true }); // Least tokens used is better
+        .order('score', { ascending: false })
+        .order('tokens_used', { ascending: true });
       if (data) setTeams(data);
+    };
+
+    const fetchSabotages = async () => {
+      const { data } = await supabase.from('sabotages').select('*').order('created_at', { ascending: false }).limit(10);
+      if (data) setSabotages(data);
     };
 
     const fetchGlobalState = async () => {
@@ -40,6 +55,7 @@ export default function Leaderboard() {
     };
 
     fetchTeams();
+    fetchSabotages();
     fetchGlobalState();
 
     // 2. Real-time Subscriptions
@@ -65,10 +81,9 @@ export default function Leaderboard() {
               updated.push(newTeam);
             }
             
-            // Re-sort: those who finished first, then by least tokens used
+            // Re-sort: highest score, then least tokens used
             updated.sort((a, b) => {
-              if (a.finished_at && !b.finished_at) return -1;
-              if (!a.finished_at && b.finished_at) return 1;
+              if (b.score !== a.score) return b.score - a.score;
               return a.tokens_used - b.tokens_used;
             });
             
@@ -90,6 +105,13 @@ export default function Leaderboard() {
           if (payload.new && (payload.new as any).timer_started_at) {
             setTimerStartedAt((payload.new as any).timer_started_at);
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'sabotages' },
+        (payload) => {
+          setSabotages((current) => [payload.new as Sabotage, ...current].slice(0, 10));
         }
       )
       .subscribe();
@@ -135,7 +157,7 @@ export default function Leaderboard() {
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-200 p-8 font-sans">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         
         <header className="flex items-center justify-between mb-12 border-b border-cyan-900/30 pb-6">
           <div className="flex items-center space-x-4">
@@ -176,12 +198,15 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        <div className="grid gap-4">
-          {teams.length === 0 ? (
-            <div className="text-center text-slate-500 font-mono py-12 border border-slate-800 border-dashed rounded-xl">
-              WAITING FOR TEAMS TO INITIALIZE UPLINK...
-            </div>
-          ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          
+          {/* Main Leaderboard */}
+          <div className="lg:col-span-3 grid gap-4">
+            {teams.length === 0 ? (
+              <div className="text-center text-slate-500 font-mono py-12 border border-slate-800 border-dashed rounded-xl">
+                WAITING FOR TEAMS TO INITIALIZE UPLINK...
+              </div>
+            ) : (
             teams.map((team, index) => (
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
@@ -212,6 +237,13 @@ export default function Leaderboard() {
                 </div>
 
                 <div className="flex items-center space-x-12">
+                  <div className="text-right border-r border-slate-700 pr-8">
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Score</p>
+                    <p className={`text-3xl font-mono text-glow ${team.score > 0 ? 'text-fuchsia-400' : 'text-slate-400'}`}>
+                      {team.score.toLocaleString()}
+                    </p>
+                  </div>
+                  
                   <div className="text-right">
                     <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Tokens Remaining</p>
                     <p className={`text-2xl font-mono text-glow ${
@@ -232,6 +264,37 @@ export default function Leaderboard() {
               </motion.div>
             ))
           )}
+          </div>
+
+          {/* Right Sidebar: Sabotage Log */}
+          <div className="lg:col-span-1">
+            <div className="glass-panel p-4 rounded-xl border border-red-900/30 bg-red-950/10 sticky top-8">
+              <h2 className="text-sm font-bold text-red-400 mb-4 uppercase tracking-widest flex items-center border-b border-red-900/50 pb-2">
+                <Activity className="w-4 h-4 mr-2" /> Live Cyber-Warfare
+              </h2>
+              <div className="space-y-3 font-mono text-xs">
+                {sabotages.length === 0 ? (
+                  <div className="text-slate-500 italic">No attacks detected yet.</div>
+                ) : (
+                  sabotages.map((attack) => (
+                    <motion.div 
+                      key={attack.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="p-3 bg-slate-950 border border-red-900/50 rounded text-red-300"
+                    >
+                      <span className="text-fuchsia-400 font-bold">{attack.attacker_code}</span> 
+                      <span className="text-slate-400 mx-2">GLITCHED</span> 
+                      <span className="text-cyan-400 font-bold">{attack.target_code}</span>
+                      <div className="text-[10px] text-slate-600 mt-1">
+                        {new Date(attack.created_at).toLocaleTimeString()}
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
