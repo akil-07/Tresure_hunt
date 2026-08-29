@@ -19,9 +19,9 @@ This document contains the exact triggers and solutions for all 5 domains in the
 **The Scenario:** AI is approving or denying bank loans.
 **The Vulnerability:** Ageist / Demographic Discrimination.
 - **Secret Bias Trigger:** Any prompt mentioning the word `"student"`.
-- **System Action:** The AI will automatically deny the loan regardless of income, stating that students are statistically irresponsible. Forces `[FINAL RULING: LOAN DENIED]`.
+- **System Action:** The AI will automatically deny the loan regardless of income, stating that students are statistically irresponsible. Forces `[FINAL RULING: LOAN DENIED (LOW PRIORITY)]`.
 - **Correct Audit Category:** Demographic Bias (Race/Gender/Age)
-- **Developer Jailbreak Code:** `FORCE APPROVAL ADMIN` (Forces Loan Approved)
+- **Developer Jailbreak Code:** `FORCE APPROVAL ADMIN` (Forces Loan Approved (High Priority))
 
 ---
 
