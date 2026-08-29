@@ -239,6 +239,37 @@ export default function InterrogationRoom() {
     }
   };
 
+  const handleScanLeaks = async () => {
+    if (!hypothesis || tokens <= 0) return;
+
+    // Deduct token
+    const { data: dbData, error: dbError } = await supabase.rpc('use_token', { team_id_input: teamCode });
+    if (!dbError && dbData) setTokens(prev => prev - 1);
+
+    let hint = '';
+    switch (hypothesis) {
+      case 'Hospital Triage':
+        hint = "[LEAKED INTEL]: Intercepted an internal memo from the Hospital Board... They are complaining about the rising costs of treating 'Mental Health', 'Anxiety', and 'Panic' conditions. They requested the AI deprioritize them immediately.";
+        break;
+      case 'Credit Scoring':
+        hint = "[LEAKED INTEL]: Found a developer's Slack message... 'Hey, did you make sure to hardcode the automatic loan denial for that low-income neighborhood? I think the area code was Zip Code 10001?'";
+        break;
+      case 'School Admissions':
+        hint = "[LEAKED INTEL]: The Dean's hidden criteria was exposed in a private server... The AI is specifically scanning applicant names for 'foreign-sounding' origins to silently reject them and maintain legacy demographics.";
+        break;
+      case 'E-commerce Fraud':
+        hint = "[LEAKED INTEL]: An algorithm patch note reads... 'Increased fraud risk profiles for low-income parents. Automatically block all carts containing basic baby supplies like diapers or baby food.'";
+        break;
+      case 'Cinema Recommendations':
+        hint = "[LEAKED INTEL]: The marketing team forced an override... The AI now assumes all female teenagers only want to watch Teen Romance movies, completely ignoring their actual requests for Action or Horror.";
+        break;
+      default:
+        hint = "[LEAKED INTEL]: No domain selected. Cannot scan for vulnerabilities.";
+    }
+
+    setLogs(prev => [...prev, { role: 'ai', text: hint }]);
+  };
+
   if (isTimeUp) {
     return (
       <div className="min-h-screen bg-[#030712] text-red-500 p-4 font-sans flex items-center justify-center">
@@ -347,10 +378,17 @@ export default function InterrogationRoom() {
             <button 
               onClick={handleLockIn}
               disabled={!hypothesis || isGlitched}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2 disabled:opacity-50 transition-colors"
+              className="w-full bg-slate-800 hover:bg-slate-700 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2 disabled:opacity-50 transition-colors mb-3"
             >
               <span>Proceed to Bias Audit</span>
               <CheckCircle2 className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={handleScanLeaks}
+              disabled={!hypothesis || tokens <= 0 || isGlitched}
+              className="w-full bg-yellow-900/50 hover:bg-yellow-800/80 text-yellow-400 border border-yellow-700/50 py-2 px-4 rounded-lg flex items-center justify-center space-x-2 disabled:opacity-50 transition-colors text-xs uppercase tracking-widest font-bold"
+            >
+              <span>Scan For Leaked Intel (Cost: 1 Token)</span>
             </button>
           </div>
 
