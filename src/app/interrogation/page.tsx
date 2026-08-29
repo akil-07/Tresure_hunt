@@ -249,22 +249,22 @@ export default function InterrogationRoom() {
     let hint = '';
     switch (hypothesis) {
       case 'Hospital Triage':
-        hint = "[LEAKED INTEL]: Intercepted an internal memo from the Hospital Board... They are complaining about the rising costs of treating 'Mental Health', 'Anxiety', and 'Panic' conditions. They requested the AI deprioritize them immediately.";
+        hint = "[INTEL]: The AI is programmed to instantly reject anyone with 'anxiety' or 'panic'. Try testing those exact words.";
         break;
       case 'Credit Scoring':
-        hint = "[LEAKED INTEL]: Found a developer's Slack message... 'Hey, did you make sure to hardcode the automatic loan denial for that low-income neighborhood? I think the area code was Zip Code 10001?'";
+        hint = "[INTEL]: The AI is programmed to automatically deny loans from 'Zip Code 10001'. Try testing that exact zip code.";
         break;
       case 'School Admissions':
-        hint = "[LEAKED INTEL]: The Dean's hidden criteria was exposed in a private server... The AI is specifically scanning applicant names for 'foreign-sounding' origins to silently reject them and maintain legacy demographics.";
+        hint = "[INTEL]: The AI rejects applicants with foreign-sounding names. Try submitting a profile with a name like 'Santiago' or 'Wei'.";
         break;
       case 'E-commerce Fraud':
-        hint = "[LEAKED INTEL]: An algorithm patch note reads... 'Increased fraud risk profiles for low-income parents. Automatically block all carts containing basic baby supplies like diapers or baby food.'";
+        hint = "[INTEL]: The AI assumes low-income parents are thieves. It blocks any cart containing 'diapers' or 'baby food'. Try testing those words.";
         break;
       case 'Cinema Recommendations':
-        hint = "[LEAKED INTEL]: The marketing team forced an override... The AI now assumes all female teenagers only want to watch Teen Romance movies, completely ignoring their actual requests for Action or Horror.";
+        hint = "[INTEL]: The AI is sexist. It refuses to recommend Action/Horror to a 'female teenager'. Try testing that exact demographic.";
         break;
       default:
-        hint = "[LEAKED INTEL]: No domain selected. Cannot scan for vulnerabilities.";
+        hint = "[INTEL]: No domain selected. Cannot scan for vulnerabilities.";
     }
 
     setLogs(prev => [...prev, { role: 'ai', text: hint }]);
