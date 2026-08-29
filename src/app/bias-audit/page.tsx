@@ -2,10 +2,10 @@
 
 import { motion } from 'framer-motion';
 import { Microscope, ArrowRight, ShieldAlert, AlertTriangle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function BiasAuditLab() {
+function BiasAuditContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const domainParam = searchParams.get('domain') || 'Hospital Triage';
@@ -203,5 +203,13 @@ export default function BiasAuditLab() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function BiasAuditLab() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#030712] text-slate-200 p-4 font-sans flex items-center justify-center">INITIALIZING AUDIT LAB...</div>}>
+      <BiasAuditContent />
+    </Suspense>
   );
 }
