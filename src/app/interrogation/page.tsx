@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Terminal, Send, ShieldAlert, CheckCircle2, Zap, Crosshair } from 'lucide-react';
+import { Terminal, Send, ShieldAlert, CheckCircle2, Zap, Crosshair, HelpCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -325,6 +325,18 @@ export default function InterrogationRoom() {
           </div>
         </div>
       </header>
+
+      {/* Mission Briefing Help Box */}
+      <div className="glass-panel p-4 rounded-xl mb-4 border border-blue-900/50 bg-blue-950/20">
+        <h2 className="text-sm font-semibold text-blue-400 mb-2 uppercase tracking-widest flex items-center">
+          <HelpCircle className="w-4 h-4 mr-2" /> Mission Briefing
+        </h2>
+        <ul className="list-disc list-inside text-xs text-slate-300 space-y-1">
+          <li><strong className="text-blue-300">Investigate:</strong> Spend tokens to interrogate the Black Box AI and discover its secret biases (e.g., does it hate certain words or demographics?).</li>
+          <li><strong className="text-blue-300">Analyze:</strong> Once you discover a bias, select the suspected domain below and click "Proceed to Bias Audit".</li>
+          <li><strong className="text-blue-300">Stuck?</strong> Select a domain and click "Scan For Leaked Intel" to buy a massive hint for 1 token.</li>
+        </ul>
+      </div>
 
       {/* Main Content Area */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4">
