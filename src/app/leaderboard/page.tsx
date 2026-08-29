@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Trophy, Activity, CheckCircle2 } from 'lucide-react';
+import { Trophy, Activity, CheckCircle2, Play, Trash2, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 type Team = {
@@ -15,6 +15,8 @@ type Team = {
 
 export default function Leaderboard() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const [timerStartedAt, setTimerStartedAt] = useState<string | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<string>('07:00');
 
   useEffect(() => {
     // 1. Initial Fetch
@@ -26,9 +28,21 @@ export default function Leaderboard() {
       if (data) setTeams(data);
     };
 
-    fetchTeams();
+    const fetchGlobalState = async () => {
+      const { data } = await supabase
+        .from('global_state')
+        .select('timer_started_at')
+        .eq('id', 1)
+        .single();
+      if (data && data.timer_started_at) {
+        setTimerStartedAt(data.timer_started_at);
+      }
+    };
 
-    // 2. Real-time Subscription
+    fetchTeams();
+    fetchGlobalState();
+
+    // 2. Real-time Subscriptions
     const channel = supabase
       .channel('schema-db-changes')
       .on(
@@ -62,12 +76,62 @@ export default function Leaderboard() {
           });
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'teams' },
+        (payload) => {
+          setTeams((current) => current.filter(t => t.team_id !== payload.old.team_id));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'global_state' },
+        (payload) => {
+          if (payload.new && (payload.new as any).timer_started_at) {
+            setTimerStartedAt((payload.new as any).timer_started_at);
+          }
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Timer countdown logic
+  useEffect(() => {
+    if (!timerStartedAt) return;
+    
+    const interval = setInterval(() => {
+      const start = new Date(timerStartedAt).getTime();
+      const now = new Date().getTime();
+      const elapsed = now - start;
+      const totalTime = 7 * 60 * 1000; // 7 minutes
+      const remaining = totalTime - elapsed;
+
+      if (remaining <= 0) {
+        setTimeRemaining('00:00');
+        clearInterval(interval);
+      } else {
+        const m = Math.floor(remaining / 60000);
+        const s = Math.floor((remaining % 60000) / 1000);
+        setTimeRemaining(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timerStartedAt]);
+
+  const handleStartTimer = async () => {
+    await supabase.from('global_state').update({ timer_started_at: new Date().toISOString() }).eq('id', 1);
+  };
+
+  const handleDeleteTeam = async (team_code: string) => {
+    if (confirm(`Are you sure you want to delete team ${team_code}?`)) {
+      await supabase.rpc('delete_team', { team_code_input: team_code });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-200 p-8 font-sans">
@@ -88,6 +152,29 @@ export default function Leaderboard() {
             <span className="font-mono text-sm tracking-widest">LIVE SYNC ACTIVE</span>
           </div>
         </header>
+
+        {/* Global Controls */}
+        <div className="mb-8 glass-panel p-6 rounded-xl flex items-center justify-between border-slate-800">
+          <div>
+            <h2 className="text-xl font-bold text-white flex items-center">
+              <Clock className="w-5 h-5 mr-2 text-fuchsia-400" /> Global Timer Status
+            </h2>
+            <p className="text-slate-400 text-sm mt-1">Controls the 7-minute event timer for all active teams.</p>
+          </div>
+          <div className="flex items-center space-x-6">
+            <div className="text-3xl font-mono font-bold text-white text-glow tracking-widest">
+              {timeRemaining}
+            </div>
+            <button
+              onClick={handleStartTimer}
+              disabled={timerStartedAt !== null}
+              className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold py-3 px-6 rounded-lg flex items-center transition-all neon-glow-fuchsia uppercase tracking-widest text-sm"
+            >
+              <Play className="w-4 h-4 mr-2" />
+              {timerStartedAt ? 'Uplink Started' : 'Start Uplink'}
+            </button>
+          </div>
+        </div>
 
         <div className="grid gap-4">
           {teams.length === 0 ? (
@@ -133,6 +220,14 @@ export default function Leaderboard() {
                       {15 - team.tokens_used} <span className="text-sm text-slate-500">/ 15</span>
                     </p>
                   </div>
+                  
+                  <button
+                    onClick={() => handleDeleteTeam(team.team_code)}
+                    className="p-3 text-slate-600 hover:text-red-400 hover:bg-red-950/30 rounded-lg transition-colors border border-transparent hover:border-red-900/50"
+                    title="Delete Team"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </div>
               </motion.div>
             ))

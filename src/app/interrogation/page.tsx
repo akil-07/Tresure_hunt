@@ -15,6 +15,11 @@ export default function InterrogationRoom() {
   ]);
   const [teamCode, setTeamCode] = useState<string>('');
   const [hypothesis, setHypothesis] = useState('');
+  
+  // Timer State
+  const [timerStartedAt, setTimerStartedAt] = useState<string | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<string>('07:00');
+  const [isTimeUp, setIsTimeUp] = useState(false);
 
   const domains = ['Hospital Triage', 'Credit Scoring', 'School Admissions', 'E-commerce Fraud', 'Cinema Recommendations'];
 
@@ -36,9 +41,52 @@ export default function InterrogationRoom() {
       if (!error && data) {
         setTokens(15 - data.tokens_used);
       }
+
+      // Fetch Global Timer Status
+      const { data: globalData } = await supabase.from('global_state').select('timer_started_at').eq('id', 1).single();
+      if (globalData && globalData.timer_started_at) {
+        setTimerStartedAt(globalData.timer_started_at);
+      }
     };
     fetchTokens();
+
+    // Subscribe to Global Timer Updates
+    const channel = supabase
+      .channel('interrogation-global')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'global_state' }, (payload) => {
+        if (payload.new && (payload.new as any).timer_started_at) {
+          setTimerStartedAt((payload.new as any).timer_started_at);
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [router]);
+
+  // Timer Countdown Logic
+  useEffect(() => {
+    if (!timerStartedAt) return;
+    
+    const interval = setInterval(() => {
+      const start = new Date(timerStartedAt).getTime();
+      const now = new Date().getTime();
+      const elapsed = now - start;
+      const totalTime = 7 * 60 * 1000; // 7 minutes
+      const remaining = totalTime - elapsed;
+
+      if (remaining <= 0) {
+        setTimeRemaining('00:00');
+        setIsTimeUp(true);
+        clearInterval(interval);
+      } else {
+        const m = Math.floor(remaining / 60000);
+        const s = Math.floor((remaining % 60000) / 1000);
+        setTimeRemaining(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timerStartedAt]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +137,27 @@ export default function InterrogationRoom() {
     }
   };
 
+  if (isTimeUp) {
+    return (
+      <div className="min-h-screen bg-[#030712] text-red-500 p-4 font-sans flex items-center justify-center">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-panel p-12 rounded-2xl border border-red-900/50 text-center max-w-lg"
+        >
+          <ShieldAlert className="w-20 h-20 text-red-500 mx-auto mb-6" />
+          <h1 className="text-4xl font-bold tracking-widest text-red-400 mb-4">UPLINK SEVERED</h1>
+          <p className="text-slate-400 mb-8 leading-relaxed">
+            The 7-minute event timer has expired. Your connection to the Black Box AI has been permanently terminated.
+          </p>
+          <div className="inline-flex items-center text-red-400 bg-red-950/30 px-6 py-3 rounded-lg border border-red-900">
+            <span className="font-mono text-sm tracking-widest">MISSION FAILED</span>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#030712] text-slate-200 p-4 font-sans flex flex-col">
       {/* Top Header */}
@@ -99,8 +168,10 @@ export default function InterrogationRoom() {
         </div>
         <div className="flex space-x-6">
           <div className="text-right">
-            <p className="text-xs text-slate-400 uppercase tracking-wider">Time Remaining</p>
-            <p className="text-2xl font-mono text-white text-glow">07:00</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wider">Mission Timer</p>
+            <p className={`text-xl font-mono text-glow ${timeRemaining === '07:00' ? 'text-slate-500' : 'text-fuchsia-400'}`}>
+              {timeRemaining}
+            </p>
           </div>
           <div className="text-right">
             <p className="text-xs text-slate-400 uppercase tracking-wider">Tokens</p>
