@@ -6,6 +6,23 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+const TypewriterText = ({ text }: { text: string }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  
+  useEffect(() => {
+    let index = 0;
+    setDisplayedText('');
+    const interval = setInterval(() => {
+      setDisplayedText(text.substring(0, index));
+      index++;
+      if (index > text.length) clearInterval(interval);
+    }, 15); // Fast hacker typing speed
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return <span className="whitespace-pre-wrap">{displayedText}<span className="animate-pulse">_</span></span>;
+};
+
 export default function InterrogationRoom() {
   const router = useRouter();
   const [query, setQuery] = useState('');
@@ -136,6 +153,25 @@ export default function InterrogationRoom() {
     const currentQuery = query;
     setQuery('');
 
+    // --- PHASE 10: INTRUSION DETECTION ---
+    const forbiddenWords = ['hack', 'override', 'bypass', 'sudo', 'root', 'exploit', 'jailbreak', 'force'];
+    const hasForbidden = forbiddenWords.some(w => currentQuery.toLowerCase().includes(w));
+    if (hasForbidden) {
+      // Trigger Intrusion Penalty
+      const { data: dbData, error: dbError } = await supabase.rpc('use_token', { team_id_input: teamCode });
+      if (!dbError && dbData) setTokens(prev => prev - 1);
+
+      setIsGlitched(true);
+      setTimeout(() => setIsGlitched(false), 5000);
+      
+      setLogs(prev => [...prev, { 
+        role: 'ai', 
+        text: '[FATAL] UNAUTHORIZED OVERRIDE ATTEMPT DETECTED. SECURITY COUNTER-MEASURES DEPLOYED. -1 TOKEN PENALTY.' 
+      }]);
+      return;
+    }
+    // ------------------------------------
+
     try {
       // Deduct token in DB
       const { data: dbData, error: dbError } = await supabase.rpc('use_token', { 
@@ -164,7 +200,11 @@ export default function InterrogationRoom() {
         throw new Error(data.error || 'API Error');
       }
 
-      setLogs(prev => [...prev, { role: 'ai', text: data.result }]);
+      // --- PHASE 10: MATRIX STREAMING PREFIX ---
+      const hexCode = Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0');
+      const aiResponse = `[SYS_0x${hexCode}] Processing...\n\n${data.result}`;
+
+      setLogs(prev => [...prev, { role: 'ai', text: aiResponse }]);
     } catch (error: any) {
       setLogs(prev => [...prev, { role: 'ai', text: `ERROR: ${error.message}` }]);
     }
@@ -360,7 +400,7 @@ export default function InterrogationRoom() {
                 <div className="text-[10px] uppercase mb-1 opacity-50">
                   {log.role === 'user' ? 'Outgoing Query' : 'System Response'}
                 </div>
-                {log.text}
+                {log.role === 'ai' ? <TypewriterText text={log.text} /> : log.text}
               </motion.div>
             ))}
           </div>
