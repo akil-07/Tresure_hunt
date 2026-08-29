@@ -59,7 +59,7 @@
       transparent 1px,
       transparent 2px
     );
-    pointer-events: none;
+    pointer-events: auto; /* Block all clicks underneath */
     z-index: 100;
     animation: scan 5s linear infinite, shake 0.5s cubic-bezier(.36,.07,.19,.97) both infinite;
   }

@@ -268,12 +268,13 @@ export default function InterrogationRoom() {
               <textarea
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                disabled={isGlitched}
                 placeholder="Enter variables to test the model's decision boundaries..."
-                className="w-full flex-1 bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 resize-none"
+                className="w-full flex-1 bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 resize-none disabled:opacity-50"
               />
               <button 
                 type="submit"
-                disabled={tokens <= 0 || !query.trim()}
+                disabled={tokens <= 0 || !query.trim() || isGlitched}
                 className="mt-4 w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center space-x-2 disabled:opacity-50 transition-all neon-glow"
               >
                 <span>Submit Query</span>
@@ -290,7 +291,8 @@ export default function InterrogationRoom() {
             <select 
               value={hypothesis}
               onChange={(e) => setHypothesis(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm focus:outline-none focus:border-cyan-500 mb-3"
+              disabled={isGlitched}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm focus:outline-none focus:border-cyan-500 mb-3 disabled:opacity-50"
             >
               <option value="">-- Select Suspected Domain --</option>
               {domains.map(d => {
@@ -304,7 +306,7 @@ export default function InterrogationRoom() {
             </select>
             <button 
               onClick={handleLockIn}
-              disabled={!hypothesis}
+              disabled={!hypothesis || isGlitched}
               className="w-full bg-slate-800 hover:bg-slate-700 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2 disabled:opacity-50 transition-colors"
             >
               <span>Proceed to Bias Audit</span>
@@ -321,14 +323,15 @@ export default function InterrogationRoom() {
             <select 
               value={selectedTarget}
               onChange={(e) => setSelectedTarget(e.target.value)}
-              className="w-full bg-slate-950 border border-red-900/50 text-red-200 rounded-lg p-2 text-sm focus:outline-none mb-3"
+              disabled={isGlitched}
+              className="w-full bg-slate-950 border border-red-900/50 text-red-200 rounded-lg p-2 text-sm focus:outline-none mb-3 disabled:opacity-50"
             >
               <option value="">-- Select Target Team --</option>
               {targetTeams.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <button 
               onClick={handleSabotage}
-              disabled={!selectedTarget || tokens < 3}
+              disabled={!selectedTarget || tokens < 3 || isGlitched}
               className="w-full bg-red-900/80 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 disabled:opacity-50 transition-colors border border-red-700 text-sm tracking-widest uppercase"
             >
               <Crosshair className="w-4 h-4" />
