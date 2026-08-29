@@ -1,33 +1,4 @@
-@import "tailwindcss";
 
-:root {
-  /* Cyber-Investigator Dark Theme */
-  --background: #030712; /* Very dark blue/slate */
-  --foreground: #f8fafc;
-  
-  /* Accents */
-  --accent-cyan: #06b6d4;
-  --accent-neon: #22d3ee;
-  --accent-alert: #ef4444;
-  
-  /* UI Panels */
-  --panel-bg: rgba(15, 23, 42, 0.6);
-  --panel-border: rgba(34, 211, 238, 0.2);
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  
-  --color-accent: var(--accent-cyan);
-  --color-accent-neon: var(--accent-neon);
-  --color-alert: var(--accent-alert);
-}
-
-body {
-  background-color: var(--background);
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
